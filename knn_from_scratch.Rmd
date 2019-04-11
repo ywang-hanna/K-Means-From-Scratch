@@ -1,0 +1,250 @@
+---
+title: 'Assignment #4'
+author: "Yuhan Wang - 20519956"
+date: "**DUE**: Tuesday, August 14, 2018, 23:59"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(tidyverse)
+library(magrittr)
+library(microbenchmark)
+library(tidyr)
+library(ggplot2)
+library(knitr)
+```
+
+# Question 1
+
+
+```{r}
+name.change <- function(s) {
+  name <- strsplit(s, "\\s+")[[1]]
+  
+  # check for non-conforming input
+  if ((length(name) != 2) || (! grepl("^[A-Za-z]\\w*[A-Za-z]$", name[1])) 
+      || (! grepl("^[A-Za-z]\\w*[A-Za-z]$", name[2]))) {
+    return("Error: Input is non-conforming.")
+  }
+  
+  # information from the chart
+  f.name1 <- c("Stinky", "Lumpy", "Buttercup", "Gidget", "Crusty", "Greasy",
+                     "Fluffy", "Cheeseball", "ChimChim", "Poopsie", "Flunky",
+                     "Booger", "Pinky", "Zippy", "Goober", "Doofus", "Slimy",
+                     "Loopy", "Snotty", "Falafel", "Dorky", "Squeezit",
+                     "Oprah", "Skipper", "Dinky", "ZsaZsa")
+    
+  l.name1 <- c("Diaper", "Toilet", "Giggle", "Bubble", "Girdle", "Barf",
+                     "Lizard", "Waffle", "Cootie", "Monkey", "Potty",
+                     "Liver", "Banana", "Rhino", "Burger", "Hamster", "Toad",
+                     "Gizzard", "Pizza", "Gerbil", "Chicken", "Pickle",
+                     "Chuckle", "Tofu", "Gorilla", "Stinker")
+    
+  l.name2 <- c("head", "mouth", "face", "nose", "tush", "breath",
+                     "pants", "shorts", "lips", "honker", "butt",
+                     "brain", "tushie", "chunks", "hiney", "biscuit", "toes",
+                     "buns", "fanny", "sniffer", "sprinkles", "kisser",
+                     "squirt", "humperdink", "brains", "juice")
+  
+  # match characters and generate new names
+  l.len <- str_length(name[2])
+  f1 <- str_sub(name[1], 1, 1)
+  l1 <- str_sub(name[2], 1, 1)
+  l2 <- str_sub(name[2], l.len, l.len)
+  f.new <- f.name1[which(toupper(f1) == LETTERS)]
+  l1.new <- l.name1[which(toupper(l1) == LETTERS)]
+  l2.new <- l.name2[which(toupper(l2) == LETTERS)]
+  return(paste(paste(f.new, l1.new, sep = " "), l2.new, sep = ""))
+}
+
+# test and print the output
+test.names <- c("Yuhan Wang", "Paul Intrevado", "David Uminksy", "Terence Parr", 
+                "Jeff Hamrick", "paul intrevado", "Intrevado, Paul", "Intrevad0 Paul", 
+                "Queen Elizabeth II", "Queen Elizabeth 2nd", "Queen Elizabeth 2", 
+                "John Paul Euclid Rumpel", "britishDudeThatSitsInTheBackOfTheClass")
+lapply(as.list(test.names), name.change)
+```
+
+
+\newpage
+
+# Question 2
+
+
+```{r warning=FALSE}
+k.means <- function(myScatterInput, myClusterNum) {
+  myInputMatrix <- as.matrix(myScatterInput)  # data frame to matrix
+  n <- nrow(myInputMatrix)
+  maxIter <- 1000
+  distVector <- c()
+  count <- 0
+  
+  # iterate 10 times
+  for (i in 1:10) {
+    set.seed(i)
+    myCluster <- split(1:n, sample(1:myClusterNum, n, replace = T))
+    # repeat until subsequent cluster assignments are unchanged 
+    # or having reached maxIter number of times
+    while (TRUE) {
+      count <- count + 1
+      centroid <- lapply(myCluster, function(x) apply(as.matrix(myInputMatrix[x,]), 2, mean))
+      centroid <- matrix(unlist(centroid), nrow = myClusterNum, byrow = T)
+      dists <- apply(myInputMatrix, 1, function(i) apply(centroid, 1, function(x) dist(rbind(x, i))))
+      myGroup <- apply(dists, 2, function(x) which(x == min(x, na.rm = T))[1])
+      newCluster <- list()
+      for (i in 1:myClusterNum) {
+        newCluster[[i]] <- which(myGroup == i)
+      }
+      test <- sum(unlist(newCluster) != unlist(myCluster))
+      if (test == 0 | count == maxIter) break
+      myCluster <- newCluster
+    }
+    
+    # calculate the sum of distances for the final cluster
+    sumDist <- 0
+    for (i in 1:myClusterNum) {
+      Dist <- sum(unlist(map(myCluster[[i]], function(x) dist(rbind(myInputMatrix[x,], centroid[i,])))))
+      sumDist <- sumDist + Dist
+    }
+    if (all(sumDist <= distVector)) minGroup <- myGroup
+    distVector <- c(distVector, sumDist)
+  }
+  
+  # plot the cluster where sum of distances are smallest
+  if (length(myScatterInput) == 2) {
+    myDF <- cbind(myScatterInput, minGroup)
+    colnames(myDF) <- c("V1", "V2", "V3")
+    print(myDF %>% ggplot() + 
+            geom_point(aes(x = V1, y = V2, color = V3)) + 
+            theme_minimal() +
+            guides(color = FALSE))
+  } 
+
+  # return the minimum of sum of distances
+  return(paste("The minimum sum of distances is ", min(distVector), sep = ""))
+}
+```
+
+
+```{r cache=TRUE, warning=FALSE}
+# TEST DATA 1
+set.seed(101)
+myScatterInput1 <- data_frame(myCol_01 = runif(100000, -1, 1))
+myClusterNum1 <- 2
+
+Dataset1 <- microbenchmark(result1 <- k.means(myScatterInput1, myClusterNum1), times = 1)
+result1
+```
+
+```{r cache=TRUE, warning=FALSE}
+# TEST DATA 2
+set.seed(102)
+myScatterInput2 <- data_frame(myCol_01 = runif(100000, -1, 1))
+myClusterNum2 <- 4
+
+Dataset2 <- microbenchmark(result2 <- k.means(myScatterInput2, myClusterNum2), times = 1)
+result2
+```
+
+\newpage
+
+```{r cache=TRUE, warning=FALSE}
+# TEST DATA 3
+set.seed(103)
+myScatterInput3 <- data_frame(myCol_01 = runif(10000, -5, 20), 
+                              myCol_02 = c(rnorm(3000, 20, 5), 
+                                           rnorm(5000, -4, 2), 
+                                           rnorm(2000, 40, 2)))
+myClusterNum3 <- 3
+
+Dataset3 <- microbenchmark(result3 <- k.means(myScatterInput3, myClusterNum3), times = 1)
+result3
+```
+
+\newpage
+
+
+```{r cache=TRUE, warning=FALSE}
+# TEST DATA 4
+set.seed(104)
+myScatterInput4 <- data_frame(myCol_01 = c(rnorm(3000, 20, 20), 
+                                          rnorm(5000, -4, 2), 
+                                          rnorm(2000, 40, 2)), 
+                             myCol_02 = runif(10000, -5, 20))
+myClusterNum4 <- 6
+
+Dataset4 <- microbenchmark(result4 <- k.means(myScatterInput4, myClusterNum4), times = 1)
+result4
+```
+
+\newpage
+
+```{r cache=TRUE, warning=FALSE}
+# TEST DATA 5
+set.seed(105)
+myScatterInput5 <- data_frame(myCol_01 = c(rnorm(3000, 20, 20), 
+                                          rnorm(5000, -4, 2), 
+                                          rnorm(2000, 40, 2)), 
+                             myCol_02 = runif(10000, -5, 20),
+                             myCol_03 = runif(10000, -100, 100),
+                             myCol_04 = c(runif(4000, -5, 20), 
+                                          rnorm(6000)),
+                             myCol_05 = runif(10000, -10, 200),
+                             myCol_06 = rnorm(10000, -300, 1000),
+                             myCol_07 = rnorm(10000, -1000000, 1000000),
+                             myCol_08 = rnorm(10000, 30, 2))
+myClusterNum5 <- 3
+
+Dataset5 <- microbenchmark(result5 <- k.means(myScatterInput5, myClusterNum5), times = 1)
+result5
+```
+
+```{r cache=TRUE, warning=FALSE}
+# TEST DATA 6
+set.seed(106)
+myScatterInput6 <- data_frame(myCol_01 = c(rnorm(3000, 20, 20), 
+                                          rnorm(5000, -4, 2), 
+                                          rnorm(2000, 40, 2)), 
+                             myCol_02 = runif(10000, -5, 20),
+                             myCol_03 = runif(10000, -100, 100),
+                             myCol_04 = c(runif(4000, -5, 20), 
+                                          rnorm(6000)),
+                             myCol_05 = runif(10000, -10, 200),
+                             myCol_06 = rnorm(10000, -300, 1000),
+                             myCol_07 = rnorm(10000, -1000000, 1000000),
+                             myCol_08 = rnorm(10000, 30, 2))
+myClusterNum6 <- 12
+
+Dataset6 <- microbenchmark(result6 <- k.means(myScatterInput6, myClusterNum6), times = 1)
+result6
+```
+
+\newpage
+
+## **NOTE: `maxIter` here is 1000, number of iterations is 10.**
+
+
+```{r}
+times <- rbind(Dataset1, Dataset2, Dataset3, Dataset4, Dataset5, Dataset6)
+times[1] <- c("Dataset 1", "Dataset 2", "Dataset 3", "Dataset 4", "Dataset 5", "Dataset 6")
+times
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
