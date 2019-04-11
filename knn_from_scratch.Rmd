@@ -1,6 +1,6 @@
 ---
-title: 'Assignment #4'
-author: "Yuhan Wang - 20519956"
+title: 'KNN Implementation'
+author: "Yuhan Wang"
 date: "**DUE**: Tuesday, August 14, 2018, 23:59"
 output: pdf_document
 ---
