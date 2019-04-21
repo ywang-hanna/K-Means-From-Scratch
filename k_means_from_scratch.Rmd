@@ -1,5 +1,5 @@
 ---
-title: 'KNN Implementation'
+title: 'K-Means Implementation'
 author: "Yuhan Wang"
 date: "**DUE**: Tuesday, August 14, 2018, 23:59"
 output: pdf_document
