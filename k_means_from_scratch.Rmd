@@ -19,7 +19,6 @@ library(knitr)
 
 # Question 1
 
-
 ```{r}
 name.change <- function(s) {
   name <- strsplit(s, "\\s+")[[1]]
